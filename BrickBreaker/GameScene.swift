@@ -15,14 +15,14 @@ struct PhysicsCategory {
     static let All : UInt32 = UInt32.max
     static let Brick : UInt32 = 0b1
     static let Ball : UInt32 = 0b10
-    static let Paddle : UInt32 = 0b11
+    static let Paddle : UInt32 = 0b100
 }
 
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
     let paddle = SKSpriteNode(imageNamed: "black")
     var brick = SKSpriteNode(imageNamed: "greenBrick")
-
+    let ball = SKSpriteNode(imageNamed: "ball1")
     var posX = 0
     var posY = 0
     
@@ -39,7 +39,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         posX = Int(brick.position.x)
         posY = Int(brick.position.y)
-        
+        brick.physicsBody = SKPhysicsBody(rectangleOf: brick.size)
+        brick.physicsBody?.isDynamic = true
+        brick.physicsBody?.categoryBitMask = PhysicsCategory.Brick
+        brick.physicsBody?.contactTestBitMask = PhysicsCategory.Ball
+        brick.physicsBody?.collisionBitMask = PhysicsCategory.None
+        brick.physicsBody?.usesPreciseCollisionDetection = true
         
         for i in 0...6 {
             addBrick()
@@ -58,7 +63,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     }
     
     func addBall() {
-        let ball = SKSpriteNode(imageNamed: "ball1")
+        
         ball.size = CGSize(width: 10, height: 10)
         let actualY = random(min: ball.size.height / 2, max: size.height - ball.size.height / 2)
         ball.position = CGPoint(x: size.width + ball.size.width / 2, y: actualY)
@@ -69,26 +74,39 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ball.physicsBody?.contactTestBitMask = PhysicsCategory.Brick
         ball.physicsBody?.collisionBitMask = PhysicsCategory.None
         
-        addChild(ball)
-        
-        let actualDuration = random(min: CGFloat(2.0), max: CGFloat(4.0))
-        let actionMove = SKAction.move(to: CGPoint(x: -ball.size.width, y: actualY), duration: TimeInterval(actualDuration))
-        let actionMoveDone = SKAction.removeFromParent()
-        ball.run(SKAction.sequence([actionMove, actionMoveDone]))
+//        addChild(ball)
+//        
+//        let actualDuration = random(min: CGFloat(2.0), max: CGFloat(4.0))
+//        let actionMove = SKAction.move(to: CGPoint(x: -ball.size.width, y: actualY), duration: TimeInterval(actualDuration))
+//        let actionMoveDone = SKAction.removeFromParent()
+//        ball.run(SKAction.sequence([actionMove, actionMoveDone]))
     }
     
     func didCollideWithEnemy(nodeA: SKSpriteNode, nodeB: SKSpriteNode) {
         print("hit")
-        nodeA.removeFromParent()
+        changeTrajectory(nodeA: nodeA)
         nodeB.removeFromParent()
+    }
+    
+    func changeTrajectory(nodeA: SKSpriteNode)
+    {
+        let offset = ball.position
+        if offset.x < 0 {
+            return
+        }
+        let direction = offset.normalized()
+        let shotDistance = direction * -1000
+        let realDestination = shotDistance + ball.position
+        let actionThrow = SKAction.move(to: realDestination, duration: 2.0)
     }
     
     func didBegin(_ contact: SKPhysicsContact) {
         let firstBody = contact.bodyA
         let secondBody = contact.bodyB
-        if let enemy = firstBody.node as? SKSpriteNode,
-            let star = secondBody.node as? SKSpriteNode {
-            didCollideWithEnemy(nodeA: star, nodeB: enemy)
+        if let ball = firstBody.node as? SKSpriteNode,
+            let brick = secondBody.node as? SKSpriteNode {
+            didCollideWithEnemy(nodeA: brick, nodeB: ball)
+            print("print")
         }
         
     }
@@ -102,27 +120,27 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         let touchLocation = touch.location(in: self)
-        let brick = SKSpriteNode(imageNamed: "red")
-        brick.position = paddle.position
-        let offset = touchLocation - brick.position
+        
+        ball.position = paddle.position
+        let offset = touchLocation - ball.position
         if offset.x < 0 {
             return
         }
 
-        brick.physicsBody = SKPhysicsBody(circleOfRadius: brick.size.width / 2)
-        brick.physicsBody?.isDynamic = true
-        brick.physicsBody?.categoryBitMask = PhysicsCategory.Brick
-        brick.physicsBody?.contactTestBitMask = PhysicsCategory.Ball
-        brick.physicsBody?.collisionBitMask = PhysicsCategory.None
-        brick.physicsBody?.usesPreciseCollisionDetection = true
+        ball.physicsBody = SKPhysicsBody(circleOfRadius: ball.size.height)
+        ball.physicsBody?.isDynamic = true
+        ball.physicsBody?.categoryBitMask = PhysicsCategory.Ball
+        ball.physicsBody?.contactTestBitMask = PhysicsCategory.Brick
+        ball.physicsBody?.collisionBitMask = PhysicsCategory.None
+        ball.physicsBody?.usesPreciseCollisionDetection = true
 
-        addChild(brick)
+        addChild(ball)
         let direction = offset.normalized()
         let shotDistance = direction * 1000
-        let realDestination = shotDistance + brick.position
+        let realDestination = shotDistance + ball.position
         let actionThrow = SKAction.move(to: realDestination, duration: 2.0)
         let actionThrowDone = SKAction.removeFromParent()
-        brick.run(SKAction.sequence([actionThrow, actionThrowDone]))
+        ball.run(SKAction.sequence([actionThrow, actionThrowDone]))
     }
     
     func random() -> CGFloat {
@@ -139,7 +157,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         posY = posY + Int(bricks.size.height) + 7
         bricks.position = CGPoint(x: posX , y: posY)
         addChild(bricks)
+        bricks.physicsBody = SKPhysicsBody(rectangleOf: bricks.size)
+        bricks.physicsBody?.isDynamic = true
+        bricks.physicsBody?.categoryBitMask = PhysicsCategory.Brick
+        bricks.physicsBody?.contactTestBitMask = PhysicsCategory.Ball
+        bricks.physicsBody?.collisionBitMask = PhysicsCategory.None
+        bricks.physicsBody?.usesPreciseCollisionDetection = true
         print("add")
+        
         
     }
 }
