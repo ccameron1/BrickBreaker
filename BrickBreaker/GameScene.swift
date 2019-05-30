@@ -32,6 +32,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         backgroundColor = SKColor.white
         paddle.position = CGPoint(x: size.width * 0.1, y: size.height * 0.5)
         addChild(paddle)
+        paddle.physicsBody = SKPhysicsBody(rectangleOf: paddle.size)
+        paddle.physicsBody?.isDynamic = true
+        paddle.physicsBody?.categoryBitMask = PhysicsCategory.Ball
+        paddle.physicsBody?.contactTestBitMask = PhysicsCategory.Paddle
+        paddle.physicsBody?.collisionBitMask = PhysicsCategory.None
+        paddle.physicsBody?.usesPreciseCollisionDetection = true
         
         brick.size = CGSize(width: 30, height: (size.width - 45) / 20)
         brick.position = CGPoint(x: size.width - 70, y: 45)
@@ -65,8 +71,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     func addBall() {
         
         ball.size = CGSize(width: 10, height: 10)
-        let actualY = random(min: ball.size.height / 2, max: size.height - ball.size.height / 2)
-        ball.position = CGPoint(x: size.width + ball.size.width / 2, y: actualY)
+        ball.position = CGPoint(x: 200, y: 200)
         
         ball.physicsBody = SKPhysicsBody(rectangleOf: ball.size)
         ball.physicsBody?.isDynamic = true
@@ -74,8 +79,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         ball.physicsBody?.contactTestBitMask = PhysicsCategory.Brick
         ball.physicsBody?.collisionBitMask = PhysicsCategory.None
         
-//        addChild(ball)
-//        
+        ball.physicsBody?.friction = 0
+        ball.physicsBody?.linearDamping = 0
+        ball.physicsBody?.velocity.dx = 200
+        ball.physicsBody?.velocity.dy = 0
+        ball.physicsBody?.applyImpulse(CGVector(dx: 3, dy: 3))
+        
+            
+        addChild(ball)
+//
 //        let actualDuration = random(min: CGFloat(2.0), max: CGFloat(4.0))
 //        let actionMove = SKAction.move(to: CGPoint(x: -ball.size.width, y: actualY), duration: TimeInterval(actualDuration))
 //        let actionMoveDone = SKAction.removeFromParent()
@@ -84,8 +96,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     func didCollideWithEnemy(nodeA: SKSpriteNode, nodeB: SKSpriteNode) {
         print("hit")
+        if nodeA.physicsBody?.velocity.dx != 0
+        {
         changeTrajectory(nodeA: nodeA)
+        print(nodeA.physicsBody?.velocity.dx)
+        nodeA.physicsBody?.velocity.dx = -(nodeA.physicsBody?.velocity.dx)!
+        
         nodeB.removeFromParent()
+        }
+        else {
+            changeTrajectory(nodeA: nodeB)
+            print(nodeB.physicsBody?.velocity.dx)
+            nodeB.physicsBody?.velocity.dx = -(nodeB.physicsBody?.velocity.dx)!
+            
+            nodeA.removeFromParent()
+        }
     }
     
     func changeTrajectory(nodeA: SKSpriteNode)
@@ -95,7 +120,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             return
         }
         let direction = offset.normalized()
-        let shotDistance = direction * -1000
+        let shotDistance = direction * 1000
         let realDestination = shotDistance + ball.position
         let actionThrow = SKAction.move(to: realDestination, duration: 2.0)
     }
@@ -109,38 +134,6 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             print("print")
         }
         
-    }
-    
-    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
-        
-//        run(SKAction.playSoundFileNamed("pew.wav", waitForCompletion: false))
-        
-        guard let touch = touches.first else  {
-            return
-        }
-        
-        let touchLocation = touch.location(in: self)
-        
-        ball.position = paddle.position
-        let offset = touchLocation - ball.position
-        if offset.x < 0 {
-            return
-        }
-
-        ball.physicsBody = SKPhysicsBody(circleOfRadius: ball.size.height)
-        ball.physicsBody?.isDynamic = true
-        ball.physicsBody?.categoryBitMask = PhysicsCategory.Ball
-        ball.physicsBody?.contactTestBitMask = PhysicsCategory.Brick
-        ball.physicsBody?.collisionBitMask = PhysicsCategory.None
-        ball.physicsBody?.usesPreciseCollisionDetection = true
-
-        addChild(ball)
-        let direction = offset.normalized()
-        let shotDistance = direction * 1000
-        let realDestination = shotDistance + ball.position
-        let actionThrow = SKAction.move(to: realDestination, duration: 2.0)
-        let actionThrowDone = SKAction.removeFromParent()
-        ball.run(SKAction.sequence([actionThrow, actionThrowDone]))
     }
     
     func random() -> CGFloat {
